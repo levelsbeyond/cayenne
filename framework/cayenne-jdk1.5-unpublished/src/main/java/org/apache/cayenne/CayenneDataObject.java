@@ -222,7 +222,7 @@ public class CayenneDataObject extends PersistentObject implements DataObject, V
         return object;
     }
 
-    public Object readProperty(String propertyName) {
+    public Object readProperty(String propertyName, boolean filterArchivedObjects) {
         if (objectContext != null) {
             // will resolve faults ourselves below as checking class descriptors for the
             // "lazyFaulting" flag is inefficient. Passing "false" here to suppress fault
@@ -238,6 +238,10 @@ public class CayenneDataObject extends PersistentObject implements DataObject, V
         }
 
         return object;
+    }
+    
+    public Object readProperty(String propertyName) {
+        return readProperty(propertyName, true);
     }
 
     public Object readPropertyDirectly(String propName) {
@@ -266,7 +270,7 @@ public class CayenneDataObject extends PersistentObject implements DataObject, V
 
         // Now do the rest of the normal handling (regardless of whether it was
         // flattened or not)
-        Object holder = readProperty(relName);
+        Object holder = readProperty(relName, false);
 
         // call 'propertyChanged' AFTER readProperty as readProperty ensures that this
         // object fault is resolved
@@ -294,7 +298,7 @@ public class CayenneDataObject extends PersistentObject implements DataObject, V
 
         // Now do the rest of the normal handling (regardless of whether it was
         // flattened or not)
-        Object holder = readProperty(relName);
+        Object holder = this.readProperty(relName, false);
 
         // call 'propertyChanged' AFTER readProperty as readProperty ensures that this
         // object fault is resolved
@@ -320,7 +324,7 @@ public class CayenneDataObject extends PersistentObject implements DataObject, V
 
         willConnect(relationshipName, value);
 
-        Object oldTarget = readProperty(relationshipName);
+        Object oldTarget = readProperty(relationshipName, false);
         if (oldTarget == value) {
             return;
         }

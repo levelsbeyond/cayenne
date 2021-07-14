@@ -52,6 +52,14 @@ public abstract class EJBQLPathTranslator extends EJBQLBaseVisitor {
     protected String joinMarker;
     protected String fullPath;
     private boolean usingAliases;
+    
+    /**
+     * Const string representing a "magic" path string that is used to represent a single primary key target.
+     * Useful when an auto-generated PK has not been mapped as an ObjAttribute.
+     * 
+     * Value == "id".
+     */
+    public static final String ID_PATH = "id";
 
     public EJBQLPathTranslator(EJBQLTranslationContext context) {
         super(true);
@@ -186,9 +194,23 @@ public abstract class EJBQLPathTranslator extends EJBQLBaseVisitor {
     }
 
     protected void processLastPathComponent() {
-
-        ObjAttribute attribute = (ObjAttribute) currentEntity
-                .getAttribute(lastPathComponent);
+        
+        ObjAttribute attribute = (ObjAttribute) currentEntity.getAttribute(lastPathComponent);
+        
+        // DLamy (09-feb-10):  if attribute is not found through normal means and the path == ID_PATH,
+        // obtain the synthetic PK ObjAttribute from the ObjEntity
+        if (attribute == null && lastPathComponent.equalsIgnoreCase(ID_PATH)) {
+            Collection<ObjAttribute> pkAttributes = currentEntity.getPrimaryKeys();
+            // only allow this to work if there is a single PK defined
+            if (pkAttributes.size() == 1) {
+                attribute = pkAttributes.iterator().next();
+                // make sure the entity ref is set, synthetic PK attributes 
+                // are not getting entity set which causes NPEs downstream
+                if (attribute.getEntity() == null) {
+                    attribute.setEntity(currentEntity);
+                }
+            }            
+        }        
 
         if (attribute != null) {
             processTerminatingAttribute(attribute);

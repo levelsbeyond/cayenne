@@ -305,7 +305,7 @@ class Compiler {
         if (descriptor == null) {
             descriptor = descriptorsById.get(expression.getText());
         }
-        final EntityResult entityResult = new EntityResult(descriptor.getObjectClass());
+        final EntityResult entityResult = new EntityResult(descriptor.getEntity().getName());
         final String prefix = "ec" + position + "_";
         final int[] index = {
             0

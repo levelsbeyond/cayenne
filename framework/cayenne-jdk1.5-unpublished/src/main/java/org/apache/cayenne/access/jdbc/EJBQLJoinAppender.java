@@ -28,6 +28,7 @@ import org.apache.cayenne.ejbql.EJBQLBaseVisitor;
 import org.apache.cayenne.ejbql.EJBQLException;
 import org.apache.cayenne.ejbql.EJBQLExpression;
 import org.apache.cayenne.ejbql.EJBQLParserFactory;
+import org.apache.cayenne.ejbql.parser.AggregateConditionNode;
 import org.apache.cayenne.exp.Expression;
 import org.apache.cayenne.map.DbEntity;
 import org.apache.cayenne.map.DbJoin;
@@ -138,7 +139,7 @@ public class EJBQLJoinAppender {
                             .getSourceEntity())
                             .getFullyQualifiedName();
                     String subquerySourceAlias = context.getTableAlias(
-                            subquerySourceTableName,
+                            lhsId.getEntityId() + subquerySourceTableName,
                             subquerySourceTableName);
 
                     String subqueryTargetTableName = ((DbEntity)dbRelationship.getTargetEntity()).getFullyQualifiedName();
@@ -164,7 +165,7 @@ public class EJBQLJoinAppender {
 
                     }
 
-                    context.append(" JOIN ");
+                    context.append(" " + semantics + " ");
                     context.append(subqueryTargetTableName).append(' ').append(
                             subqueryTargetAlias);
                     generateJoiningExpression(
@@ -262,6 +263,7 @@ public class EJBQLJoinAppender {
                 EJBQLExpression ejbqlQualifier = ejbqlQualifierForEntityAndSubclasses(
                         qualifier,
                         id.getEntityId());
+                boolean embraceEjbqlQualifier = ejbqlQualifier instanceof AggregateConditionNode;
 
                 context.pushMarker(context.makeWhereMarker(), true);
                 context.append(" WHERE");
@@ -269,9 +271,21 @@ public class EJBQLJoinAppender {
 
                 context.pushMarker(context.makeEntityQualifierMarker(), false);
 
+                if (embraceEjbqlQualifier) {
+                    context.append(" (");
+                }
+                
+                if (context.findOrCreateMarkedBuffer(context.makeEntityQualifierMarker()).length() > 0) {
+                    context.append(" AND");
+                }
+
                 ejbqlQualifier.visit(context
                         .getTranslatorFactory()
                         .getConditionTranslator(context));
+
+                if (embraceEjbqlQualifier) {
+                    context.append(" )");
+                }
 
                 context.popMarker();
             }
